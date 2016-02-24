@@ -253,8 +253,8 @@ func (c *Collection) FindOne(query interface{}, doc interface{}) error {
 	return nil
 }
 
-// DeleteDocument ...
-func (c *Collection) DeleteDocument(doc Document) error {
+// Delete ...
+func (c *Collection) Delete(doc Document) error {
 	var err error
 	// Create a new session per mgo's suggestion to avoid blocking
 	sess := c.Connection.Session.Clone()
@@ -286,18 +286,18 @@ func (c *Collection) DeleteDocument(doc Document) error {
 	return nil
 }
 
-// Delete convenience method which just delegates to mgo.
+// RawDelete convenience method which just delegates to mgo.
 // Note that hooks are NOT run
-func (c *Collection) Delete(query bson.M) (*mgo.ChangeInfo, error) {
+func (c *Collection) RawDelete(query bson.M) (*mgo.ChangeInfo, error) {
 	sess := c.Connection.Session.Clone()
 	defer sess.Close()
 	col := c.collectionOnSession(sess)
 	return col.RemoveAll(query)
 }
 
-// DeleteOne convenience method which just delegates to mgo.
+// RawDeleteOne convenience method which just delegates to mgo.
 // Note that hooks are NOT run
-func (c *Collection) DeleteOne(query bson.M) error {
+func (c *Collection) RawDeleteOne(query bson.M) error {
 	sess := c.Connection.Session.Clone()
 	defer sess.Close()
 	col := c.collectionOnSession(sess)

@@ -198,7 +198,7 @@ func TestCollection(t *testing.T) {
 			err := conn.Collection("tests").Save(doc)
 			So(err, ShouldEqual, nil)
 
-			err = conn.Collection("tests").DeleteDocument(doc)
+			err = conn.Collection("tests").Delete(doc)
 			So(err, ShouldEqual, nil)
 
 			count, err := conn.Collection("tests").Collection().Count()
@@ -213,7 +213,7 @@ func TestCollection(t *testing.T) {
 			err := conn.Collection("tests").Save(doc)
 			So(err, ShouldEqual, nil)
 
-			err = conn.Collection("tests").DeleteDocument(doc)
+			err = conn.Collection("tests").Delete(doc)
 			So(err, ShouldEqual, nil)
 
 			count, err := conn.Collection("tests").Collection().Count()
@@ -225,13 +225,13 @@ func TestCollection(t *testing.T) {
 			So(doc.RanAfterDelete, ShouldEqual, true)
 		})
 
-		Convey("should be able delete a document with DeleteOne", func() {
+		Convey("should be able delete a document with RawDeleteOne", func() {
 			doc := &noHookDocument{}
 
 			err := conn.Collection("tests").Save(doc)
 			So(err, ShouldEqual, nil)
 
-			err = conn.Collection("tests").DeleteOne(bson.M{
+			err = conn.Collection("tests").RawDeleteOne(bson.M{
 				"_id": doc.ID,
 			})
 			So(err, ShouldEqual, nil)
@@ -242,13 +242,13 @@ func TestCollection(t *testing.T) {
 			So(count, ShouldEqual, 0)
 		})
 
-		Convey("should be able delete a document with Delete", func() {
+		Convey("should be able delete a document with RawDelete", func() {
 			doc := &noHookDocument{}
 
 			err := conn.Collection("tests").Save(doc)
 			So(err, ShouldEqual, nil)
 
-			info, err := conn.Collection("tests").Delete(bson.M{
+			info, err := conn.Collection("tests").RawDelete(bson.M{
 				"_id": doc.ID,
 			})
 			So(err, ShouldEqual, nil)

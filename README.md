@@ -125,25 +125,25 @@ if vErr, ok := err.(*bongo.ValidationError); ok {
 
 There are three ways to delete a document.
 
-#### DeleteDocument
-Same thing as `Save` - just call `DeleteDocument` on the collection and pass the document instance.
+#### Delete
+Same thing as `Save` - just call `Delete` on the collection and pass the document instance.
 ```go
-err := connection.Collection("people").DeleteDocument(person)
+err := connection.Collection("people").Delete(person)
 ```
 
 This *will* run the `BeforeDelete` and `AfterDelete` hooks, if applicable.
 
-#### DeleteOne
+#### RawDeleteOne
 This just delegates to `mgo.Collection.Remove`. It will *not* run the `BeforeDelete` and `AfterDelete` hooks.
 
 ```go
-err := connection.Collection("people").DeleteOne(bson.M{"FirstName":"Testy"})
+err := connection.Collection("people").RawDeleteOne(bson.M{"FirstName":"Testy"})
 ```
 
-#### Delete
+#### RawDelete
 This delegates to `mgo.Collection.RemoveAll`. It will *not* run the `BeforeDelete` and `AfterDelete` hooks.
 ```go
-changeInfo, err := connection.Collection("people").Delete(bson.M{"FirstName":"Testy"})
+changeInfo, err := connection.Collection("people").RawDelete(bson.M{"FirstName":"Testy"})
 fmt.Printf("Deleted %d documents", changeInfo.Removed)
 ```
 
