@@ -232,7 +232,7 @@ func TestCollection(t *testing.T) {
 			So(err, ShouldEqual, nil)
 
 			err = conn.Collection("tests").DeleteOne(bson.M{
-				"_id": doc.Id,
+				"_id": doc.ID,
 			})
 			So(err, ShouldEqual, nil)
 
@@ -249,7 +249,7 @@ func TestCollection(t *testing.T) {
 			So(err, ShouldEqual, nil)
 
 			info, err := conn.Collection("tests").Delete(bson.M{
-				"_id": doc.Id,
+				"_id": doc.ID,
 			})
 			So(err, ShouldEqual, nil)
 			So(info.Removed, ShouldEqual, 1)

@@ -2,6 +2,7 @@ package bongo
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"gopkg.in/mgo.v2"
