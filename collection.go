@@ -237,6 +237,39 @@ func (c *Collection) FindOne(query interface{}, doc interface{}) error {
 	return nil
 }
 
+// DeleteDocument ...
+func (c *Collection) DeleteDocument(doc Document) error {
+	var err error
+	// Create a new session per mgo's suggestion to avoid blocking
+	sess := c.Connection.Session.Clone()
+	defer sess.Close()
+	col := c.collectionOnSession(sess)
+
+	if hook, ok := doc.(BeforeDeleteHook); ok {
+		err := hook.BeforeDelete(c)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = col.Remove(bson.M{"_id": doc.GetID()})
+
+	if err != nil {
+		return err
+	}
+
+	go CascadeDelete(c, doc)
+
+	if hook, ok := doc.(AfterDeleteHook); ok {
+		err = hook.AfterDelete(c)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Delete ...
 func (c *Collection) Delete(doc Document) error {
 	var err error
