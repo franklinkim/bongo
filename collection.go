@@ -2,9 +2,10 @@ package bongo
 
 import (
 	"errors"
+	"time"
+
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"time"
 )
 
 // BeforeSaveHook ...
@@ -34,12 +35,12 @@ type AfterFindHook interface {
 
 // ValidateHook ...
 type ValidateHook interface {
-	Validate(*Collection) []string
+	Validate(*Collection) []error
 }
 
 // ValidationError ...
 type ValidationError struct {
-	Errors []string
+	Errors []error
 }
 
 // TimeTracker ...
@@ -60,7 +61,12 @@ type CascadingDocument interface {
 }
 
 func (v *ValidationError) Error() string {
-	return "Validation failed"
+	errs := make([]string, len(v.Errors))
+
+	for i, e := range v.Errors {
+		errs[i] = e.Error()
+	}
+	return "Validation failed. (" + strings.Join(errs, ", ") + ")"
 }
 
 // Collection ...
@@ -91,15 +97,8 @@ func (c *Collection) collectionOnSession(sess *mgo.Session) *mgo.Collection {
 	return sess.DB(c.Connection.Config.Database).C(c.Name)
 }
 
-// Save ...
-func (c *Collection) Save(doc Document) error {
-	var err error
-	sess := c.Connection.Session.Clone()
-	defer sess.Close()
-
-	// Per mgo's recommendation, create a clone of the session so there is no blocking
-	col := c.collectionOnSession(sess)
-
+// PreSave ...
+func (c *Collection) PreSave(doc Document) error {
 	// Validate?
 	if validator, ok := doc.(ValidateHook); ok {
 		errs := validator.Validate(c)
@@ -116,6 +115,22 @@ func (c *Collection) Save(doc Document) error {
 		}
 	}
 
+	return nil
+}
+
+// Save ...
+func (c *Collection) Save(doc Document) error {
+	var err error
+	sess := c.Connection.Session.Clone()
+	defer sess.Close()
+
+	// Per mgo's recommendation, create a clone of the session so there is no blocking
+	col := c.collectionOnSession(sess)
+
+	err = c.PreSave(doc)
+	if err != nil {
+		return err
+	}
 	// If the model implements the NewTracker interface, we'll use that to determine newness. Otherwise always assume it's new
 
 	isNew := true
@@ -270,36 +285,20 @@ func (c *Collection) DeleteDocument(doc Document) error {
 	return nil
 }
 
-// Delete ...
-func (c *Collection) Delete(doc Document) error {
-	var err error
-	// Create a new session per mgo's suggestion to avoid blocking
+// Delete convenience method which just delegates to mgo.
+// Note that hooks are NOT run
+func (c *Collection) Delete(query bson.M) (*mgo.ChangeInfo, error) {
 	sess := c.Connection.Session.Clone()
 	defer sess.Close()
 	col := c.collectionOnSession(sess)
+	return col.RemoveAll(query)
+}
 
-	if hook, ok := doc.(BeforeDeleteHook); ok {
-		err := hook.BeforeDelete(c)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = col.Remove(bson.M{"_id": doc.GetID()})
-
-	if err != nil {
-		return err
-	}
-
-	go CascadeDelete(c, doc)
-
-	if hook, ok := doc.(AfterDeleteHook); ok {
-		err = hook.AfterDelete(c)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-
+// DeleteOne convenience method which just delegates to mgo.
+// Note that hooks are NOT run
+func (c *Collection) DeleteOne(query bson.M) error {
+	sess := c.Connection.Session.Clone()
+	defer sess.Close()
+	col := c.collectionOnSession(sess)
+	return col.Remove(query)
 }

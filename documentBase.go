@@ -7,7 +7,7 @@ import (
 
 // DocumentBase ...
 type DocumentBase struct {
-	ID       bson.ObjectId `bson:"_id" json:"_id"`
+	ID       bson.ObjectId `bson:"_id,omitempty" json:"_id"`
 	Created  time.Time     `bson:"_created" json:"_created"`
 	Modified time.Time     `bson:"_modified" json:"_modified"`
 

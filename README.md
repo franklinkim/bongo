@@ -1,6 +1,24 @@
 # What's Bongo?
 We couldn't find a good ODM for MongoDB written in Go, so we made one. Bongo is a wrapper for mgo (https://github.com/go-mgo/mgo) that adds ODM, hooks, validation, and cascade support to its raw Mongo functions.
 
+Bongo is tested using the fantasic GoConvey (https://github.com/smartystreets/goconvey)
+
+[![Build Status](https://travis-ci.org/maxwellhealth/bongo.svg)](https://travis-ci.org/maxwellhealth/bongo)
+
+[![Coverage Status](https://coveralls.io/repos/maxwellhealth/bongo/badge.svg)](https://coveralls.io/r/maxwellhealth/bongo)
+
+# Stablity
+
+Since we're not yet at a major release, some things in the API might change. Here's a list:
+
+* Save - stable
+* Find/FindOne/FindById - stable
+* Delete - stable
+* Save/Delete/Find/Validation hooks - stable
+* Cascade - unstable (might need a refactor)
+* Change Tracking - stable
+* Validation methods - stable
+
 # Usage
 
 ## Basic Usage
@@ -24,10 +42,14 @@ config := &bongo.Config{
 }
 ```
 
-Then just create a new instance of `bongo.Connection`:
+Then just create a new instance of `bongo.Connection`, and make sure to handle any connection errors:
 
 ```go
-connection := bongo.Connect(config)
+connection, err := bongo.Connect(config)
+
+if err != nil {
+	log.Fatal(err)
+}
 ```
 
 If you need to, you can access the raw `mgo` session with `connection.Session`
@@ -39,7 +61,6 @@ Any struct can be used as a document as long as it satisfies the `Document` inte
 For example:
 
 ```go
-
 type Person struct {
 	bongo.DocumentBase `bson:",inline"`
 	FirstName string
@@ -51,8 +72,6 @@ type Person struct {
 You can use child structs as well.
 
 ```go
-
-
 type Person struct {
 	bongo.DocumentBase `bson:",inline"`
 	FirstName string
@@ -64,7 +83,7 @@ type Person struct {
 		City string
 		State string
 		Zip string
-	} 
+	}
 }
 ```
 
@@ -72,7 +91,7 @@ type Person struct {
 
 You can add special methods to your document type that will automatically get called by bongo during certain actions. Hooks get passed the current `*bongo.Collection` so you can avoid having to couple them with your actual database layer. Currently available hooks are:
 
-* `func (s *ModelStruct) Validate(*bongo.Collection) []string` (returns a slice of errors - if it is empty then it is assumed that validation succeeded)
+* `func (s *ModelStruct) Validate(*bongo.Collection) []error` (returns a slice of errors - if it is empty then it is assumed that validation succeeded)
 * `func (s *ModelStruct) BeforeSave(*bongo.Collection) error`
 * `func (s *ModelStruct) AfterSave(*bongo.Collection) error`
 * `func (s *ModelStruct) BeforeDelete(*bongo.Collection) error`
@@ -104,9 +123,28 @@ if vErr, ok := err.(*bongo.ValidationError); ok {
 
 ### Deleting Documents
 
-Same thing as `Save` - just call `Delete` on the collection and pass the document instance.
+There are three ways to delete a document.
+
+#### DeleteDocument
+Same thing as `Save` - just call `DeleteDocument` on the collection and pass the document instance.
 ```go
-err := connection.Collection("people").Delete(person)
+err := connection.Collection("people").DeleteDocument(person)
+```
+
+This *will* run the `BeforeDelete` and `AfterDelete` hooks, if applicable.
+
+#### DeleteOne
+This just delegates to `mgo.Collection.Remove`. It will *not* run the `BeforeDelete` and `AfterDelete` hooks.
+
+```go
+err := connection.Collection("people").DeleteOne(bson.M{"FirstName":"Testy"})
+```
+
+#### Delete
+This delegates to `mgo.Collection.RemoveAll`. It will *not* run the `BeforeDelete` and `AfterDelete` hooks.
+```go
+changeInfo, err := connection.Collection("people").Delete(bson.M{"FirstName":"Testy"})
+fmt.Printf("Deleted %d documents", changeInfo.Removed)
 ```
 
 
@@ -121,7 +159,7 @@ The error returned can be a `DocumentNotFoundError` or a more low-level MongoDB 
 
 ```go
 if dnfError, ok := err.(*bongo.DocumentNotFoundError); ok {
-	fmt.Println("document not found"")
+	fmt.Println("document not found")
 } else {
 	fmt.Println("real error " + err.Error())
 }
@@ -145,7 +183,7 @@ for results.Next(person) {
 }
 ```
 
-To paginate, you can run `Paginate(perPage int, currentPage int)` on the result of `connection.Find()`. That will return an instance of `bongo.PaginationInfo`, with properties like `TotalRecords`, `RecordsOnPage`, etc. 
+To paginate, you can run `Paginate(perPage int, currentPage int)` on the result of `connection.Find()`. That will return an instance of `bongo.PaginationInfo`, with properties like `TotalRecords`, `RecordsOnPage`, etc.
 
 To use additional functions like `sort`, `skip`, `limit`, etc, you can access the underlying mgo `Query` via `ResultSet.Query`.
 
@@ -178,9 +216,8 @@ type MyModel struct {
 
 // Easy way to lazy load a diff tracker
 func (m *MyModel) GetDiffTracker() *DiffTracker {
-	v := reflect.ValueOf(m.diffTracker)
-	if !v.IsValid() || v.IsNil() {
-		m.diffTracker = NewDiffTracker(m)
+	if m.diffTracker == nil {
+		m.diffTracker = bongo.NewDiffTracker(m)
 	}
 
 	return m.diffTracker
@@ -220,15 +257,16 @@ isNew, modifiedFields = myModel.GetModified()
 fmt.Println(isNew, modifiedFields) // false, []
 ```
 
+### Diff-tracking Session
+If you are going to be checking more than one field, you should instantiate a new `DiffTrackingSession` with `diffTracker.NewSession(useBsonTags bool)`. This will load the changed fields into the session. Otherwise with each call to `diffTracker.Modified()`, it will have to recalculate the changed fields.
+
 
 ## Cascade Save/Delete
 Bongo supports cascading portions of documents to related documents and the subsequent cleanup upon deletion. For example, if you have a `Team` collection, and each team has an array of `Players`, you can cascade a player's first name and last name to his or her `team.Players` array on save, and remove that element in the array if you delete the player.
 
-To use this feature, your struct needs to have an exported method called `GetCascade`, which returns an array of `*bongo.CascadeConfig`. Additionally, if you want to make use of the `OldQuery` property to remove references from previously related documents, you should probably alsotimplement the `DiffTracker` on your model struct (see above). 
+To use this feature, your struct needs to have an exported method called `GetCascade`, which returns an array of `*bongo.CascadeConfig`. Additionally, if you want to make use of the `OldQuery` property to remove references from previously related documents, you should probably alsotimplement the `DiffTracker` on your model struct (see above).
 
-On the struct properties that are cascaded from related documents, you need to tell Mongo not to save them, and how to decrypt them. (The related collection could have a different encryption key). To do this, use the `cascadedFrom={collectionName}` bongo tag, like so `bongo:"cascadedFrom=children"`. This will tell Bongo not to save those fields when you save your model (since they are supposed to be populated by the related documents), and also to decrypt those fields using the encryption key for the "children" collection, rather than the main model's collection.
-
-You can also leave `ThroughProp` blank, in which case the properties of the document will be cascaded directly onto the related document. This is useful when you want to cascade `ObjectId` properties or other references, but it is important that you keep in mind that (a) these properties will be nullified on the related document when the main doc is deleted or changes references, and (b) they will fail decryption if you have encryption keys per collection, because currently there is no way to designate that property is cascaded from another collection unless it is a struct or slice of structs.
+You can also leave `ThroughProp` blank, in which case the properties of the document will be cascaded directly onto the related document. This is useful when you want to cascade `ObjectId` properties or other references, but it is important that you keep in mind that these properties will be nullified on the related document when the main doc is deleted or changes references.
 
 Also note that like the above hooks, the `GetCascade` method will be passed the instance of the `bongo.Collection` so you can keep your models decoupled from your database layer.
 
@@ -252,7 +290,7 @@ type CascadeConfig struct {
 
 	// Properties that will be cascaded/deleted. Can (should) be in dot notation for nested properties. This is used to nullify properties when there is an OldQuery or if the document is deleted.
 	Properties []string
-	
+
 	// The actual data that will be cascade
 	Data interface{}
 }
@@ -273,7 +311,7 @@ func (c *Child) GetCascade(collection *bongo.Collection) []*bongo.CascadeConfig 
 	cascadeSingle := &bongo.CascadeConfig{
 		Collection:  connection.Collection("parents").Collection(),
 		Properties:  []string{"name"},
-		Rel:rel,
+		Data:rel,
 		ThroughProp: "child",
 		RelType:     bongo.RelOne,
 		Query: bson.M{
@@ -284,7 +322,7 @@ func (c *Child) GetCascade(collection *bongo.Collection) []*bongo.CascadeConfig 
 	cascadeMulti := &bongo.CascadeConfig{
 		Collection:  connection.Collection("parents").Collection(),
 		Properties:  []string{"name"},
-		Rel:rel,
+		Data:rel,
 		ThroughProp: "children",
 		RelType:     bongo.RelMany,
 		Query: bson.M{
@@ -311,12 +349,12 @@ func (c *Child) GetCascade(collection *bongo.Collection) []*bongo.CascadeConfig 
 
 This does the following:
 
-1) When you save a child, it will populate its parent's (defined by `cascadeSingle.Query`) `child` property with an object, consisting of one key/value pair (`name`)
+1. When you save a child, it will populate its parent's (defined by `cascadeSingle.Query`) `child` property with an object, consisting of one key/value pair (`name`)
 
-2) When you save a child, it will also modify its parent's (defined by `cascadeMulti.Query`) `children` array, either modifying or pushing to the array of key/value pairs, also with just `name`.
+2. When you save a child, it will also modify its parent's (defined by `cascadeMulti.Query`) `children` array, either modifying or pushing to the array of key/value pairs, also with just `name`.
 
-3) When you delete a child, it will use `cascadeSingle.OldQuery` to remove the reference from its previous `parent.child`
+3. When you delete a child, it will use `cascadeSingle.OldQuery` to remove the reference from its previous `parent.child`
 
-4) When you delete a child, it will also use `cascadeMulti.OldQuery` to remove the reference from its previous `parent.children`
+4. When you delete a child, it will also use `cascadeMulti.OldQuery` to remove the reference from its previous `parent.children`
 
-Note that the `ThroughProp` must be the actual field name in the database, not the property name on the struct. If there is no `ThroughProp`, the data will be cascaded directly onto the root of the document.
+Note that the `ThroughProp` must be the actual field name in the database (bson tag), not the property name on the struct. If there is no `ThroughProp`, the data will be cascaded directly onto the root of the document.
