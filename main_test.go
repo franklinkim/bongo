@@ -9,35 +9,28 @@ import (
 
 // For test usage
 func getConnection() *Connection {
-	info, _ := mgo.ParseURL("mongodb://localhost:27017/bongotest")
-	conf := &Config{
-		DialInfo: info,
-		Database: info.Database,
-	}
-
-	conn, err := Connect(conf)
-
+	dialInfo, err := mgo.ParseURL("mongodb://localhost:27017/bongotest")
 	if err != nil {
 		panic(err)
 	}
-
+	conn, err := Connect(dialInfo)
+	if err != nil {
+		panic(err)
+	}
 	return conn
 }
 
 func TestConnect(t *testing.T) {
 	Convey("should be able to connect to a database using a config", t, func() {
-		info, _ := mgo.ParseURL("mongodb://localhost:27017/bongotest")
-		conf := &Config{
-			DialInfo: info,
-			Database: info.Database,
-		}
+		dialInfo, err := mgo.ParseURL("mongodb://localhost:27017/bongotest")
+		So(err, ShouldBeNil)
 
-		conn, err := Connect(conf)
+		conn, err := Connect(dialInfo)
 		defer conn.Session.Close()
-		So(err, ShouldEqual, nil)
+		So(err, ShouldBeNil)
 
 		err = conn.Session.Ping()
-		So(err, ShouldEqual, nil)
+		So(err, ShouldBeNil)
 	})
 }
 

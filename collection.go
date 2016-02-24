@@ -91,12 +91,12 @@ func (d DocumentNotFoundError) Error() string {
 
 // Collection ...
 func (c *Collection) Collection() *mgo.Collection {
-	return c.Connection.Session.DB(c.Connection.Config.Database).C(c.Name)
+	return c.Connection.Session.DB(c.Connection.DialInfo.Database).C(c.Name)
 }
 
 // CollectionOnSession ...
 func (c *Collection) CollectionOnSession(sess *mgo.Session) *mgo.Collection {
-	return sess.DB(c.Connection.Config.Database).C(c.Name)
+	return sess.DB(c.Connection.DialInfo.Database).C(c.Name)
 }
 
 // PreSave ...

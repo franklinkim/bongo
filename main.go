@@ -6,22 +6,16 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-// Config struct
-type Config struct {
-	DialInfo *mgo.DialInfo
-	Database string
-}
-
 // Connection struct
 type Connection struct {
-	Config  *Config
-	Session *mgo.Session
+	DialInfo *mgo.DialInfo
+	Session  *mgo.Session
 }
 
 // Connect creates a new connection and run Connect()
-func Connect(config *Config) (*Connection, error) {
+func Connect(dialInfo *mgo.DialInfo) (*Connection, error) {
 	conn := &Connection{
-		Config: config,
+		DialInfo: dialInfo,
 	}
 
 	err := conn.Connect()
@@ -45,7 +39,7 @@ func (m *Connection) Connect() (err error) {
 
 		}
 	}()
-	session, err := mgo.DialWithInfo(m.Config.DialInfo)
+	session, err := mgo.DialWithInfo(m.DialInfo)
 
 	if err != nil {
 		return err
