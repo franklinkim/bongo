@@ -11,57 +11,54 @@ import (
 
 // Relation types (one-to-many or one-to-one)
 const (
-	REL_MANY = iota
-	REL_ONE  = iota
+	RelMany = iota
+	RelOne  = iota
 )
 
+// ReferenceField ...
 type ReferenceField struct {
 	BsonName string
 	Value    interface{}
 }
 
-// Configuration to tell Bongo how to cascade data to related documents on save or delete
+// CascadeConfig to tell Bongo how to cascade data to related documents on save or delete
 type CascadeConfig struct {
 	// The collection to cascade to
 	Collection *Collection
-
-	// The relation type (does the target doc have an array of these docs [REL_MANY] or just reference a single doc [REL_ONE])
+	// The relation type (does the target doc have an array of these
+	// docs [RelMany] or just reference a single doc [RelOne])
 	RelType int
-
 	// The property on the related doc to populate
 	ThroughProp string
-
 	// The query to find related docs
 	Query bson.M
-
-	// The data that constructs the query may have changed - this is to remove self from previous relations
+	// The data that constructs the query may have changed - this
+	// is to remove self from previous relations
 	OldQuery bson.M
-
 	// Should it also cascade the related doc on save?
 	Nest bool
-
-	// If there is no through prop, we need to know which properties to nullify if a document is deleted
-	// and cascades to the root level of a related document. These are also used to nullify the previous relation
-	// if the relation ID is changed
+	// If there is no through prop, we need to know which properties to
+	// nullify if a document is deleted and cascades to the root level of a related
+	// document. These are also used to nullify the previous relation if the relation
+	// ID is changed
 	Properties []string
-
 	// Full data to cascade down to the related document. Note
 	Data interface{}
-
 	// An instance of the related doc if it needs to be nested
 	Instance Document
-
-	// If this is true, then just run the "remove" parts of the queries, instead of the remove + add
+	// If this is true, then just run the "remove" parts of the queries,
+	// instead of the remove + add
 	RemoveOnly bool
-
-	// If this is provided, use this field instead of _id for determining "sameness". This must also be a bson.ObjectId field
+	// If this is provided, use this field instead of _id for determining "sameness".
+	// This must also be a bson.ObjectId field
 	ReferenceQuery []*ReferenceField
 }
 
+// CascadeFilter ...
 type CascadeFilter func(data map[string]interface{})
 
-// Cascades a document's properties to related documents, after it has been prepared
-// for db insertion (encrypted, etc)
+// CascadeSave cascades a document's properties to related documents,
+// after it has been prepared for db insertion (encrypted, etc)
 func CascadeSave(collection *Collection, doc Document) error {
 	// Find out which properties to cascade
 	if conv, ok := doc.(CascadingDocument); ok {
@@ -69,7 +66,7 @@ func CascadeSave(collection *Collection, doc Document) error {
 		for _, conf := range toCascade {
 
 			if len(conf.ReferenceQuery) == 0 {
-				conf.ReferenceQuery = []*ReferenceField{&ReferenceField{"_id", doc.GetId()}}
+				conf.ReferenceQuery = []*ReferenceField{&ReferenceField{"_id", doc.GetID()}}
 			}
 			_, err := cascadeSaveWithConfig(conf, doc)
 			if err != nil {
@@ -91,7 +88,7 @@ func CascadeSave(collection *Collection, doc Document) error {
 	return nil
 }
 
-// Deletes references to a document from its related documents
+// CascadeDelete deletes references to a document from its related documents
 func CascadeDelete(collection *Collection, doc interface{}) {
 	// Find out which properties to cascade
 	if conv, ok := doc.(interface {
@@ -103,7 +100,7 @@ func CascadeDelete(collection *Collection, doc interface{}) {
 
 		for _, conf := range toCascade {
 			if len(conf.ReferenceQuery) == 0 {
-				id, err := reflections.GetField(doc, "Id")
+				id, err := reflections.GetField(doc, "ID")
 				if err != nil {
 					panic(err)
 				}
@@ -121,7 +118,7 @@ func CascadeDelete(collection *Collection, doc interface{}) {
 func cascadeDeleteWithConfig(conf *CascadeConfig) (*mgo.ChangeInfo, error) {
 
 	switch conf.RelType {
-	case REL_ONE:
+	case RelOne:
 		update := map[string]map[string]interface{}{
 			"$set": map[string]interface{}{},
 		}
@@ -135,7 +132,7 @@ func cascadeDeleteWithConfig(conf *CascadeConfig) (*mgo.ChangeInfo, error) {
 		}
 
 		return conf.Collection.Collection().UpdateAll(conf.Query, update)
-	case REL_MANY:
+	case RelMany:
 		update := map[string]map[string]interface{}{
 			"$pull": map[string]interface{}{},
 		}
@@ -158,7 +155,7 @@ func cascadeSaveWithConfig(conf *CascadeConfig, doc Document) (*mgo.ChangeInfo, 
 	data := conf.Data
 
 	switch conf.RelType {
-	case REL_ONE:
+	case RelOne:
 		if len(conf.OldQuery) > 0 {
 
 			update1 := map[string]map[string]interface{}{
@@ -192,7 +189,7 @@ func cascadeSaveWithConfig(conf *CascadeConfig, doc Document) (*mgo.ChangeInfo, 
 
 		// Just update
 		return conf.Collection.Collection().UpdateAll(conf.Query, update)
-	case REL_MANY:
+	case RelMany:
 
 		update1 := map[string]map[string]interface{}{
 			"$pull": map[string]interface{}{},
@@ -227,8 +224,9 @@ func cascadeSaveWithConfig(conf *CascadeConfig, doc Document) (*mgo.ChangeInfo, 
 
 }
 
-// If you need to, you can use this to construct the data map that will be cascaded down to
-// related documents. Doing this is not recommended unless the cascaded fields are dynamic.
+// MapFromCascadeProperties if you need to, you can use this to construct the data map that
+// will be cascaded down to related documents. Doing this is not recommended unless the cascaded
+// fields are dynamic.
 func MapFromCascadeProperties(properties []string, doc Document) map[string]interface{} {
 	data := make(map[string]interface{})
 

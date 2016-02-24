@@ -5,12 +5,14 @@ import (
 	"reflect"
 )
 
+// ValidateRequired ...
 func ValidateRequired(val interface{}) bool {
 	valueOf := reflect.ValueOf(val)
 	return valueOf.Interface() != reflect.Zero(valueOf.Type()).Interface()
 }
 
-func ValidateMongoIdRef(id bson.ObjectId, collection *Collection) bool {
+// ValidateMongoIDRef ...
+func ValidateMongoIDRef(id bson.ObjectId, collection *Collection) bool {
 	count, err := collection.Collection().Find(bson.M{"_id": id}).Count()
 
 	if err != nil {
@@ -32,6 +34,7 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
+// ValidateInclusionIn ...
 func ValidateInclusionIn(value string, options []string) bool {
 	return stringInSlice(value, options)
 }

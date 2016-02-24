@@ -5,8 +5,9 @@ import (
 	"time"
 )
 
+// DocumentBase ...
 type DocumentBase struct {
-	Id       bson.ObjectId `bson:"_id" json:"_id"`
+	ID       bson.ObjectId `bson:"_id" json:"_id"`
 	Created  time.Time     `bson:"_created" json:"_created"`
 	Modified time.Time     `bson:"_modified" json:"_modified"`
 
@@ -14,28 +15,32 @@ type DocumentBase struct {
 	exists bool
 }
 
-// Satisfy the new tracker interface
+// SetIsNew satisfy the new tracker interface
 func (d *DocumentBase) SetIsNew(isNew bool) {
 	d.exists = !isNew
 }
 
+// IsNew ...
 func (d *DocumentBase) IsNew() bool {
 	return !d.exists
 }
 
-// Satisfy the document interface
-func (d *DocumentBase) GetId() bson.ObjectId {
-	return d.Id
+// GetID satisfy the document interface
+func (d *DocumentBase) GetID() bson.ObjectId {
+	return d.ID
 }
 
-func (d *DocumentBase) SetId(id bson.ObjectId) {
-	d.Id = id
+// SetID ...
+func (d *DocumentBase) SetID(id bson.ObjectId) {
+	d.ID = id
 }
 
+// SetCreated ...
 func (d *DocumentBase) SetCreated(t time.Time) {
 	d.Created = t
 }
 
+// SetModified ...
 func (d *DocumentBase) SetModified(t time.Time) {
 	d.Modified = t
 }

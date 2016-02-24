@@ -2,52 +2,59 @@ package bongo
 
 import (
 	"errors"
-	// "fmt"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"time"
-	// "math"
-	// "strings"
 )
 
+// BeforeSaveHook ...
 type BeforeSaveHook interface {
 	BeforeSave(*Collection) error
 }
 
+// AfterSaveHook ...
 type AfterSaveHook interface {
 	AfterSave(*Collection) error
 }
 
+// BeforeDeleteHook ...
 type BeforeDeleteHook interface {
 	BeforeDelete(*Collection) error
 }
 
+// AfterDeleteHook ...
 type AfterDeleteHook interface {
 	AfterDelete(*Collection) error
 }
 
+// AfterFindHook ...
 type AfterFindHook interface {
 	AfterFind(*Collection) error
 }
 
+// ValidateHook ...
 type ValidateHook interface {
 	Validate(*Collection) []string
 }
 
+// ValidationError ...
 type ValidationError struct {
 	Errors []string
 }
 
+// TimeTracker ...
 type TimeTracker interface {
 	SetCreated(time.Time)
 	SetModified(time.Time)
 }
 
+// Document ...
 type Document interface {
-	GetId() bson.ObjectId
-	SetId(bson.ObjectId)
+	GetID() bson.ObjectId
+	SetID(bson.ObjectId)
 }
 
+// CascadingDocument ...
 type CascadingDocument interface {
 	GetCascade(*Collection) []*CascadeConfig
 }
@@ -56,22 +63,26 @@ func (v *ValidationError) Error() string {
 	return "Validation failed"
 }
 
+// Collection ...
 type Collection struct {
 	Name       string
 	Connection *Connection
 }
 
+// NewTracker ...
 type NewTracker interface {
 	SetIsNew(bool)
 	IsNew() bool
 }
 
+// DocumentNotFoundError ...
 type DocumentNotFoundError struct{}
 
 func (d DocumentNotFoundError) Error() string {
 	return "Document not found"
 }
 
+// Collection ...
 func (c *Collection) Collection() *mgo.Collection {
 	return c.Connection.Session.DB(c.Connection.Config.Database).C(c.Name)
 }
@@ -80,6 +91,7 @@ func (c *Collection) collectionOnSession(sess *mgo.Session) *mgo.Collection {
 	return sess.DB(c.Connection.Config.Database).C(c.Name)
 }
 
+// Save ...
 func (c *Collection) Save(doc Document) error {
 	var err error
 	sess := c.Connection.Session.Clone()
@@ -123,16 +135,16 @@ func (c *Collection) Save(doc Document) error {
 
 	go CascadeSave(c, doc)
 
-	id := doc.GetId()
+	id := doc.GetID()
 
 	if !isNew && !id.Valid() {
-		return errors.New("New tracker says this document isn't new but there is no valid Id field")
+		return errors.New("New tracker says this document isn't new but there is no valid ID field")
 	}
 
 	if isNew && !id.Valid() {
-		// Generate an Id
+		// Generate an ID
 		id = bson.NewObjectId()
-		doc.SetId(id)
+		doc.SetID(id)
 	}
 
 	_, err = col.UpsertId(id, doc)
@@ -156,7 +168,8 @@ func (c *Collection) Save(doc Document) error {
 	return nil
 }
 
-func (c *Collection) FindById(id bson.ObjectId, doc interface{}) error {
+// FindByID ...
+func (c *Collection) FindByID(id bson.ObjectId, doc interface{}) error {
 
 	err := c.Collection().FindId(id).One(doc)
 
@@ -165,9 +178,8 @@ func (c *Collection) FindById(id bson.ObjectId, doc interface{}) error {
 	if err != nil {
 		if err.Error() == "not found" {
 			return &DocumentNotFoundError{}
-		} else {
-			return err
 		}
+		return err
 	}
 
 	if hook, ok := doc.(AfterFindHook); ok {
@@ -184,7 +196,7 @@ func (c *Collection) FindById(id bson.ObjectId, doc interface{}) error {
 	return nil
 }
 
-// This doesn't actually do any DB interaction, it just creates the result set so we can
+// Find doesn't actually do any DB interaction, it just creates the result set so we can
 // start looping through on the iterator
 func (c *Collection) Find(query interface{}) *ResultSet {
 	col := c.Collection()
@@ -201,6 +213,7 @@ func (c *Collection) Find(query interface{}) *ResultSet {
 	return resultset
 }
 
+// FindOne ...
 func (c *Collection) FindOne(query interface{}, doc interface{}) error {
 
 	// Now run a find
@@ -213,10 +226,8 @@ func (c *Collection) FindOne(query interface{}, doc interface{}) error {
 		// There could have been an error fetching the next one, which would set the Error property on the resultset
 		if results.Error != nil {
 			return results.Error
-		} else {
-			return &DocumentNotFoundError{}
 		}
-
+		return &DocumentNotFoundError{}
 	}
 
 	if newt, ok := doc.(NewTracker); ok {
@@ -226,6 +237,7 @@ func (c *Collection) FindOne(query interface{}, doc interface{}) error {
 	return nil
 }
 
+// Delete ...
 func (c *Collection) Delete(doc Document) error {
 	var err error
 	// Create a new session per mgo's suggestion to avoid blocking
@@ -240,7 +252,7 @@ func (c *Collection) Delete(doc Document) error {
 		}
 	}
 
-	err = col.Remove(bson.M{"_id": doc.GetId()})
+	err = col.Remove(bson.M{"_id": doc.GetID()})
 
 	if err != nil {
 		return err

@@ -6,21 +6,19 @@ import (
 	"labix.org/v2/mgo"
 )
 
+// Config struct
 type Config struct {
 	ConnectionString string
 	Database         string
 }
 
-// var EncryptionKey [32]byte
-// var EnableEncryption bool
-
+// Connection struct
 type Connection struct {
 	Config  *Config
 	Session *mgo.Session
-	// collection []Collection
 }
 
-// Create a new connection and run Connect()
+// Connect creates a new connection and run Connect()
 func Connect(config *Config) (*Connection, error) {
 	conn := &Connection{
 		Config: config,
@@ -59,8 +57,8 @@ func (m *Connection) Connect() (err error) {
 	return nil
 }
 
+// Collection ...
 func (m *Connection) Collection(name string) *Collection {
-
 	// Just create a new instance - it's cheap and only has name
 	return &Collection{
 		Connection: m,

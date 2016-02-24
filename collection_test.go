@@ -68,7 +68,7 @@ func TestCollection(t *testing.T) {
 
 			err := conn.Collection("tests").Save(doc)
 			So(err, ShouldEqual, nil)
-			So(doc.Id.Valid(), ShouldEqual, true)
+			So(doc.ID.Valid(), ShouldEqual, true)
 			So(doc.IsNew(), ShouldEqual, false)
 		})
 
@@ -98,7 +98,7 @@ func TestCollection(t *testing.T) {
 
 			err := conn.Collection("tests").Save(doc)
 			So(err, ShouldEqual, nil)
-			So(doc.Id.Valid(), ShouldEqual, true)
+			So(doc.ID.Valid(), ShouldEqual, true)
 			So(doc.IsNew(), ShouldEqual, false)
 
 			err = conn.Collection("tests").Save(doc)
@@ -128,29 +128,29 @@ func TestCollection(t *testing.T) {
 		})
 	})
 
-	Convey("FindById", t, func() {
+	Convey("FindByID", t, func() {
 		doc := &noHookDocument{}
 		err := conn.Collection("tests").Save(doc)
 		So(err, ShouldEqual, nil)
 
 		Convey("should find a doc by id", func() {
 			newDoc := &noHookDocument{}
-			err := conn.Collection("tests").FindById(doc.GetId(), newDoc)
+			err := conn.Collection("tests").FindByID(doc.GetID(), newDoc)
 			So(err, ShouldEqual, nil)
-			So(newDoc.Id.Hex(), ShouldEqual, doc.Id.Hex())
+			So(newDoc.ID.Hex(), ShouldEqual, doc.ID.Hex())
 		})
 
 		Convey("should find a doc by id and run afterFind", func() {
 			newDoc := &hookedDocument{}
-			err := conn.Collection("tests").FindById(doc.GetId(), newDoc)
+			err := conn.Collection("tests").FindByID(doc.GetID(), newDoc)
 			So(err, ShouldEqual, nil)
-			So(newDoc.Id.Hex(), ShouldEqual, doc.Id.Hex())
+			So(newDoc.ID.Hex(), ShouldEqual, doc.ID.Hex())
 			So(newDoc.RanAfterFind, ShouldEqual, true)
 		})
 
 		Convey("should return a document not found error if doc not found", func() {
 
-			err := conn.Collection("tests").FindById(bson.NewObjectId(), doc)
+			err := conn.Collection("tests").FindByID(bson.NewObjectId(), doc)
 			_, ok := err.(*DocumentNotFoundError)
 			So(ok, ShouldEqual, true)
 		})
@@ -172,7 +172,7 @@ func TestCollection(t *testing.T) {
 				"name": "foo",
 			}, newDoc)
 			So(err, ShouldEqual, nil)
-			So(newDoc.Id.Hex(), ShouldEqual, doc.Id.Hex())
+			So(newDoc.ID.Hex(), ShouldEqual, doc.ID.Hex())
 		})
 
 		Convey("should find one with query and run afterFind", func() {
@@ -181,7 +181,7 @@ func TestCollection(t *testing.T) {
 				"name": "foo",
 			}, newDoc)
 			So(err, ShouldEqual, nil)
-			So(newDoc.Id.Hex(), ShouldEqual, doc.Id.Hex())
+			So(newDoc.ID.Hex(), ShouldEqual, doc.ID.Hex())
 			So(newDoc.RanAfterFind, ShouldEqual, true)
 		})
 

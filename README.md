@@ -34,7 +34,7 @@ If you need to, you can access the raw `mgo` session with `connection.Session`
 
 ### Create a Document
 
-Any struct can be used as a document as long as it satisfies the `Document` interface (`SetId(bson.ObjectId)`, `GetId() bson.ObjectId`). We recommend that you use the `DocumentBase` provided with Bongo, which implements that interface as well as the `NewTracker` and `TimeTracker` interfaces (to keep track of new/existing documents and created/modified timestamps). If you use the `DocumentBase` or something similar, make sure you use `bson:",inline"` otherwise you will get nested behavior when the data goes to your database.
+Any struct can be used as a document as long as it satisfies the `Document` interface (`SetID(bson.ObjectId)`, `GetID() bson.ObjectId`). We recommend that you use the `DocumentBase` provided with Bongo, which implements that interface as well as the `NewTracker` and `TimeTracker` interfaces (to keep track of new/existing documents and created/modified timestamps). If you use the `DocumentBase` or something similar, make sure you use `bson:",inline"` otherwise you will get nested behavior when the data goes to your database.
 
 For example:
 
@@ -114,7 +114,7 @@ err := connection.Collection("people").Delete(person)
 
 ```go
 person := &Person{}
-err := connection.Collection("people").FindById(bson.ObjectIdHex(StringId), person)
+err := connection.Collection("people").FindByID(bson.ObjectIdHex(StringId), person)
 ```
 
 The error returned can be a `DocumentNotFoundError` or a more low-level MongoDB error. To check, use a type assertion:
@@ -238,7 +238,7 @@ type CascadeConfig struct {
 	// The collection to cascade to
 	Collection *mgo.Collection
 
-	// The relation type (does the target doc have an array of these docs [REL_MANY] or just reference a single doc [REL_ONE])
+	// The relation type (does the target doc have an array of these docs [RelMany] or just reference a single doc [RelOne])
 	RelType int
 
 	// The property on the related doc to populate
@@ -261,13 +261,13 @@ type CascadeConfig struct {
 ### Example
 ```go
 type ChildRef struct {
-	Id bson.ObjectId `bson:"_id" json:"_id"`
+	ID bson.ObjectId `bson:"_id" json:"_id"`
 	Name string
 }
 func (c *Child) GetCascade(collection *bongo.Collection) []*bongo.CascadeConfig {
 	connection := collection.Connection
 	rel := &ChildRef {
-		Id:c.Id,
+		ID:c.ID,
 		Name:c.Name,
 	}
 	cascadeSingle := &bongo.CascadeConfig{
@@ -275,7 +275,7 @@ func (c *Child) GetCascade(collection *bongo.Collection) []*bongo.CascadeConfig 
 		Properties:  []string{"name"},
 		Rel:rel,
 		ThroughProp: "child",
-		RelType:     bongo.REL_ONE,
+		RelType:     bongo.RelOne,
 		Query: bson.M{
 			"_id": c.ParentId,
 		},
@@ -286,7 +286,7 @@ func (c *Child) GetCascade(collection *bongo.Collection) []*bongo.CascadeConfig 
 		Properties:  []string{"name"},
 		Rel:rel,
 		ThroughProp: "children",
-		RelType:     bongo.REL_MANY,
+		RelType:     bongo.RelMany,
 		Query: bson.M{
 			"_id": c.ParentId,
 		},

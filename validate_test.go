@@ -20,7 +20,7 @@ func TestValidation(t *testing.T) {
 			So(ValidateInclusionIn("bing", []string{"foo", "bar", "baz"}), ShouldEqual, false)
 		})
 
-		Convey("ValidateMongoIdRef()", func() {
+		Convey("ValidateMongoIDRef()", func() {
 			connection := getConnection()
 
 			defer func() {
@@ -34,9 +34,9 @@ func TestValidation(t *testing.T) {
 			err := connection.Collection("docs").Save(doc)
 
 			So(err, ShouldEqual, nil)
-			So(ValidateMongoIdRef(doc.Id, connection.Collection("docs")), ShouldEqual, true)
-			So(ValidateMongoIdRef(bson.NewObjectId(), connection.Collection("docs")), ShouldEqual, false)
-			So(ValidateMongoIdRef(bson.NewObjectId(), connection.Collection("other_collection")), ShouldEqual, false)
+			So(ValidateMongoIDRef(doc.ID, connection.Collection("docs")), ShouldEqual, true)
+			So(ValidateMongoIDRef(bson.NewObjectId(), connection.Collection("docs")), ShouldEqual, false)
+			So(ValidateMongoIDRef(bson.NewObjectId(), connection.Collection("other_collection")), ShouldEqual, false)
 
 		})
 	})
