@@ -8,8 +8,8 @@ import (
 
 // Config struct
 type Config struct {
-	ConnectionString string
-	Database         string
+	DialInfo *mgo.DialInfo
+	Database string
 }
 
 // Connection struct
@@ -45,7 +45,7 @@ func (m *Connection) Connect() (err error) {
 
 		}
 	}()
-	session, err := mgo.Dial(m.Config.ConnectionString)
+	session, err := mgo.DialWithInfo(m.Config.DialInfo)
 
 	if err != nil {
 		return err

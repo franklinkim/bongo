@@ -1,15 +1,18 @@
 package bongo
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2"
 )
 
 // For test usage
 func getConnection() *Connection {
+	info, _ := mgo.ParseURL("mongodb://localhost:27017/bongotest")
 	conf := &Config{
-		ConnectionString: "localhost",
-		Database:         "bongotest",
+		DialInfo: info,
+		Database: info.Database,
 	}
 
 	conn, err := Connect(conf)
@@ -23,9 +26,10 @@ func getConnection() *Connection {
 
 func TestConnect(t *testing.T) {
 	Convey("should be able to connect to a database using a config", t, func() {
+		info, _ := mgo.ParseURL("mongodb://localhost:27017/bongotest")
 		conf := &Config{
-			ConnectionString: "localhost",
-			Database:         "bongotest",
+			DialInfo: info,
+			Database: info.Database,
 		}
 
 		conn, err := Connect(conf)

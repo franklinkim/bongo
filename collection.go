@@ -94,7 +94,8 @@ func (c *Collection) Collection() *mgo.Collection {
 	return c.Connection.Session.DB(c.Connection.Config.Database).C(c.Name)
 }
 
-func (c *Collection) collectionOnSession(sess *mgo.Session) *mgo.Collection {
+// CollectionOnSession ...
+func (c *Collection) CollectionOnSession(sess *mgo.Session) *mgo.Collection {
 	return sess.DB(c.Connection.Config.Database).C(c.Name)
 }
 
@@ -126,7 +127,7 @@ func (c *Collection) Save(doc Document) error {
 	defer sess.Close()
 
 	// Per mgo's recommendation, create a clone of the session so there is no blocking
-	col := c.collectionOnSession(sess)
+	col := c.CollectionOnSession(sess)
 
 	err = c.PreSave(doc)
 	if err != nil {
@@ -259,7 +260,7 @@ func (c *Collection) Delete(doc Document) error {
 	// Create a new session per mgo's suggestion to avoid blocking
 	sess := c.Connection.Session.Clone()
 	defer sess.Close()
-	col := c.collectionOnSession(sess)
+	col := c.CollectionOnSession(sess)
 
 	if hook, ok := doc.(BeforeDeleteHook); ok {
 		err := hook.BeforeDelete(c)
@@ -291,7 +292,7 @@ func (c *Collection) Delete(doc Document) error {
 func (c *Collection) RawDelete(query bson.M) (*mgo.ChangeInfo, error) {
 	sess := c.Connection.Session.Clone()
 	defer sess.Close()
-	col := c.collectionOnSession(sess)
+	col := c.CollectionOnSession(sess)
 	return col.RemoveAll(query)
 }
 
@@ -300,6 +301,6 @@ func (c *Collection) RawDelete(query bson.M) (*mgo.ChangeInfo, error) {
 func (c *Collection) RawDeleteOne(query bson.M) error {
 	sess := c.Connection.Session.Clone()
 	defer sess.Close()
-	col := c.collectionOnSession(sess)
+	col := c.CollectionOnSession(sess)
 	return col.Remove(query)
 }
