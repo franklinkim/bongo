@@ -10,16 +10,19 @@ import (
 type Connection struct {
 	DialInfo *mgo.DialInfo
 	Session  *mgo.Session
+	Context  *Context
 }
 
 // Connect creates a new connection and run Connect()
-func Connect(dialInfo *mgo.DialInfo) (*Connection, error) {
+func Connect(info *mgo.DialInfo) (*Connection, error) {
+	set := make(map[string]interface{})
 	conn := &Connection{
-		DialInfo: dialInfo,
+		DialInfo: info,
+		Context: &Context{
+			set: set,
+		},
 	}
-
 	err := conn.Connect()
-
 	return conn, err
 }
 
@@ -56,6 +59,7 @@ func (m *Connection) Collection(name string) *Collection {
 	// Just create a new instance - it's cheap and only has name
 	return &Collection{
 		Connection: m,
+		Context:    m.Context,
 		Name:       name,
 	}
 }

@@ -14,6 +14,7 @@ func getConnection() *Connection {
 		panic(err)
 	}
 	conn, err := Connect(dialInfo)
+	conn.Context.Set("foo", "bar")
 	if err != nil {
 		panic(err)
 	}
@@ -28,6 +29,10 @@ func TestConnect(t *testing.T) {
 		conn, err := Connect(dialInfo)
 		defer conn.Session.Close()
 		So(err, ShouldBeNil)
+
+		conn.Context.Set("foo", "bar")
+		value := conn.Context.Get("foo")
+		So(value, ShouldEqual, "bar")
 
 		err = conn.Session.Ping()
 		So(err, ShouldBeNil)
