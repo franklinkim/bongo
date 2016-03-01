@@ -122,11 +122,11 @@ func TestCollection(t *testing.T) {
 
 			err := conn.Collection("tests").Save(doc)
 			So(err, ShouldEqual, nil)
-			So(doc.Created.UnixNano(), ShouldEqual, doc.Modified.UnixNano())
+			So(doc.CreatedAt.UnixNano(), ShouldEqual, doc.ModifiedAt.UnixNano())
 
 			err = conn.Collection("tests").Save(doc)
 			So(err, ShouldEqual, nil)
-			So(doc.Modified.UnixNano(), ShouldBeGreaterThan, doc.Created.UnixNano())
+			So(doc.ModifiedAt.UnixNano(), ShouldBeGreaterThan, doc.CreatedAt.UnixNano())
 		})
 
 		Reset(func() {
