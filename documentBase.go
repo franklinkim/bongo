@@ -11,7 +11,8 @@ type DocumentBase struct {
 	CreatedAt  time.Time     `bson:"createdAt" json:"createdAt"`
 	ModifiedAt time.Time     `bson:"modifiedAt" json:"modifiedAt"`
 
-	// We want this to default to false without any work. So this will be the opposite of isNew. We want it to be new unless set to existing
+	// We want this to default to false without any work.
+	// So this will be the opposite of isNew. We want it to be new unless set to existing
 	exists bool
 }
 
